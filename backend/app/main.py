@@ -20,7 +20,7 @@ else:
 
 LLM_API_KEYS = [k.strip() for k in os.getenv("LLM_API_KEYS", "").split(",") if k.strip()]
 DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
-LLM_MODEL = os.getenv("LLM_MODEL", "gemini/gemini-3.5-flash")
+LLM_MODEL = os.getenv("LLM_MODEL", "gemini/gemini-2.5-flash")
 ENABLE_SIMULATION = os.getenv("ENABLE_FAILURE_SIMULATION", "false").lower() == "true"
 ALLOWED_ORIGINS = [x.strip() for x in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",") if x.strip()] 
 
@@ -177,6 +177,7 @@ def chat(req: ChatRequest, x_simulate_failure: Optional[str] = Header(default=No
                     key_id = kid
                     break
                 except Exception as exc:
+                    print(f"LiteLLM provider failure for {kid}: {type(exc).__name__}: {str(exc)[:500]}", flush=True)
                     text = str(exc).lower()
                     code = getattr(exc, "status_code", None)
                     is_retryable = any(word in text for word in ("quota", "rate limit", "rate_limit", "429", "500", "502", "503", "timeout", "unavailable", "overloaded"))
