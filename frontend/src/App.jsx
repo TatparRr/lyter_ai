@@ -4,7 +4,7 @@ import './App.css'
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '')
 
 export default function App() {
-  const [sessionId] = useState(() => `s-${crypto.randomUUID().slice(0, 8)}`)
+  const [sessionId, setSessionId] = useState(() => `s-${crypto.randomUUID().slice(0, 8)}`)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [systemPrompt, setSystemPrompt] = useState('')
@@ -44,11 +44,44 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      <header>
-        <div className="brand-mark">AI</div>
-        <div><p className="eyebrow">LYFTER</p><h1>Conversation Studio</h1></div>
-        <span className="session-pill">Session live</span>
-      </header>
+      <aside className="sidebar">
+        <div className="sidebar-brand">
+          <div className="brand-mark">AI</div>
+          <div>
+            <p className="eyebrow">LYFTER AI</p>
+            <h2>Conversation Studio</h2>
+          </div>
+        </div>
+
+        <button
+          className="new-chat"
+          type="button"
+          onClick={() => {
+            setMessages([])
+            setInput('')
+            setSystemPrompt('')
+            setSessionId(`s-${crypto.randomUUID().slice(0, 8)}`)
+          }}
+        >
+          <span>＋</span> New chat
+        </button>
+
+        <div className="chat-list">
+          <p className="chat-list-label">Today</p>
+          <button className="chat-list-item active" type="button">
+            <span className="chat-icon">◫</span>
+            <span>Current conversation</span>
+          </button>
+        </div>
+
+        <div className="profile-card">
+          <div className="profile-avatar">TR</div>
+          <div className="profile-details">
+            <strong>Tatpar Ramawat</strong>
+            <span>Tatpar.122660@stu.upes.ac.in</span>
+          </div>
+        </div>
+      </aside>
 
       <section className="chat-card">
         <label className="prompt-label">System prompt <span>optional</span></label>
