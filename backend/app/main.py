@@ -20,7 +20,7 @@ else:
 
 LLM_API_KEYS = [k.strip() for k in os.getenv("LLM_API_KEYS", "").split(",") if k.strip()]
 DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
-LLM_MODEL = os.getenv("LLM_MODEL", "gemini/gemini-2.5-flash")
+LLM_MODEL = os.getenv("LLM_MODEL", "gemini/gemini-3.5-flash")
 ENABLE_SIMULATION = os.getenv("ENABLE_FAILURE_SIMULATION", "false").lower() == "true"
 ALLOWED_ORIGINS = [x.strip() for x in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",") if x.strip()] 
 
