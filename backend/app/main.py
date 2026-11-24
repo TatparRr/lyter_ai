@@ -104,7 +104,7 @@ def chat(req: ChatRequest, x_simulate_failure: Optional[str] = Header(default=No
     started = time.perf_counter()
 
     with cache_lock:
-        cached = response_cache.get(ck)
+        cached = None if x_simulate_failure else response_cache.get(ck)
     if cached:
         latency = int((time.perf_counter() - started) * 1000)
         latency = max(0, min(latency, 10))
@@ -166,7 +166,7 @@ def chat(req: ChatRequest, x_simulate_failure: Optional[str] = Header(default=No
                         model=LLM_MODEL,
                         messages=messages,
                         api_key=api_key,
-                        caching=True,
+                        caching=False if x_simulate_failure else True,
                         timeout=20,
                     )
                     reply = response.choices[0].message.content.strip()
@@ -178,14 +178,15 @@ def chat(req: ChatRequest, x_simulate_failure: Optional[str] = Header(default=No
                 except Exception as exc:
                     text = str(exc).lower()
                     code = getattr(exc, "status_code", None)
+                    is_retryable = any(word in text for word in ("quota", "rate limit", "rate_limit", "429", "500", "502", "503", "timeout", "unavailable", "overloaded"))
                     if code is None:
                         for s in (429,500,502,503):
                             if str(s) in text:
                                 code=s
                                 break
-                    if code in (429,500,502,503):
+                    if code in (429,500,502,503) or is_retryable:
                         fallback_attempts += 1
-                        status_error = code
+                        status_error = code or 503
                     else:
                         fallback_attempts += 1
                         status_error = 503

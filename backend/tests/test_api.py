@@ -48,3 +48,53 @@ def test_simulate_all_failure():
 def test_unknown_session():
     r = client.get("/sessions/no-such-session/messages")
     assert r.status_code == 404
+
+
+def test_demo_key_fallback():
+    r = client.post(
+        "/chat",
+        headers={"X-Simulate-Failure":"key_1=429"},
+        json={"session_id":"fallback-cache-bypass","message":"Tell me a unique fallback answer"},
+    )
+    assert r.status_code == 200
+    assert r.json()["metadata"]["key_id"] == "key_2"
+    assert r.json()["metadata"]["fallback_attempts"] == 1
+
+
+def test_multiturn_history():
+    client.post("/chat", json={"session_id":"turns","message":"My favorite color is blue"})
+    r = client.post("/chat", json={"session_id":"turns","message":"What is my favorite color?"})
+    history = client.get("/sessions/turns/messages")
+    assert r.status_code == 200
+    assert history.status_code == 200
+    assert len(history.json()["messages"]) == 4
+
+
+def test_failed_request_not_added_to_history():
+    r = client.post(
+        "/chat",
+        headers={"X-Simulate-Failure":"*=503"},
+        json={"session_id":"no-history","message":"This should fail"},
+    )
+    assert r.status_code == 503
+    assert client.get("/sessions/no-history/messages").status_code == 404
+
+
+def test_key_two_simulated_after_key_one():
+    r = client.post(
+        "/chat",
+        headers={"X-Simulate-Failure":"key_1=429,key_2=500"},
+        json={"session_id":"all-simulated","message":"A question that should fail both demo keys"},
+    )
+    assert r.status_code == 503
+    assert r.json()["detail"] == "all providers unavailable"
+
+
+def test_cache_latency_is_small():
+    response_cache.clear()
+    live = client.post("/chat", json={"session_id":"latency-live","message":"Latency benchmark question"})
+    cached = client.post("/chat", json={"session_id":"latency-cache","message":"Latency benchmark question"})
+    assert live.status_code == cached.status_code == 200
+    assert live.json()["metadata"]["resolution_source"] == "LIVE_INFERENCE"
+    assert cached.json()["metadata"]["resolution_source"] == "LLM_CACHE"
+    assert cached.json()["metadata"]["latency_ms"] <= live.json()["metadata"]["latency_ms"]
