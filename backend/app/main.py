@@ -19,6 +19,7 @@ else:
     DB_PATH = DB_PATH.lstrip("/")
 
 LLM_API_KEYS = [k.strip() for k in os.getenv("LLM_API_KEYS", "").split(",") if k.strip()]
+DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
 LLM_MODEL = os.getenv("LLM_MODEL", "gemini/gemini-2.0-flash")
 ENABLE_SIMULATION = os.getenv("ENABLE_FAILURE_SIMULATION", "false").lower() == "true"
 ALLOWED_ORIGINS = [x.strip() for x in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",") if x.strip()] 
@@ -81,7 +82,7 @@ def health():
             conn.execute("SELECT 1").fetchone()
     except Exception:
         raise HTTPException(status_code=503, detail="database unavailable")
-    configured_keys = len(LLM_API_KEYS) if LLM_API_KEYS else 2
+    configured_keys = 2 if DEMO_MODE else (len(LLM_API_KEYS) if LLM_API_KEYS else 0)
     return {"status":"ok", "keys_configured":configured_keys, "cache_enabled":True}
 
 @app.post("/chat")
@@ -130,7 +131,7 @@ def chat(req: ChatRequest, x_simulate_failure: Optional[str] = Header(default=No
         key_id = None
         status_error = None
 
-        if not LLM_API_KEYS:
+        if DEMO_MODE or not LLM_API_KEYS:
             # Local/demo mode: provide real demo answers and demonstrate key failover.
             wildcard_status = simulation.get("*")
             if wildcard_status:
